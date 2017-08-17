@@ -92,15 +92,25 @@ object Renderer {
       case FloatRenderer() => Seq(Rectangle(0, 0, 1, 1))
       case LinearArrayRenderer(element, size) =>
         val elemWidth = typeRendererWidth(element)
-        //draw inner elements and translate them in place
-        (0 until size).flatMap(pos => makePrimitives(element).map(translate(_, dx = elemWidth*pos, dy = 0))) ++ Seq(Box(0, 0, size*elemWidth, 1))
+        //compute inner element primitives
+        val elementPrims = makePrimitives(element)
+        //Repeat each set of primitives up to size times, translating the set by the
+        //position
+        val sets = (0 until size).map(pos => elementPrims.map(translate(_, dx = elemWidth*pos, dy = 0)))
+        //As a final results, flatten the sets and add the container box
+        sets.flatten ++ Seq(Box(0, 0, size*elemWidth, 1))
       case GridArrayRenderer(elementType, width, height) =>
         val elemWidth =typeRendererWidth(elementType)
         val elemHeight = typeRendererHeight(elementType)
-        (for(x <- 0 until width;
-             y <- 0 until height)
-          yield makePrimitives(elementType).map(translate(_, dx = x*elemWidth, dy = y*elemHeight))
-          ).flatten ++ Seq(Box(0, 0, width * elemWidth, height * elemHeight))
+        //compute inner element primitives
+        val elementPrims = makePrimitives(elementType)
+        //Compute the positions where the children will go
+        val positions = for(x <- 0 until width;
+                            y <- 0 until height) yield (x*elemWidth, y*elemHeight)
+        //For each position, replicate the elementPrimitives and translate them to that place
+        val sets = positions.map{case (x,y) => elementPrims.map(translate(_, dx = x, dy = y))}
+        //Flatten the sets and wrap in container box
+        sets.flatten ++ Seq(Box(0, 0, width*elemWidth, height*elemHeight))
     }
   }
 
