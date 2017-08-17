@@ -1,12 +1,19 @@
 package logic
 
+import logic.Operations.{Map, Operation}
+
 /**
   * Created by federico on 16/08/17.
   */
 
 object Renderer {
   import Types.Type
-  sealed trait TypeRenderer
+  sealed trait Renderer
+  /* A type renderer is a structure that  contains
+   * all the information necessary to turn a source type into
+   * a series of graphical primitives.
+   */
+  sealed trait TypeRenderer extends Renderer
 
   case class FloatRenderer() extends TypeRenderer
   sealed trait ArrayTypeRenderer extends TypeRenderer
@@ -25,9 +32,8 @@ object Renderer {
     case GridArrayRenderer(elem, _, height) => typeRendererHeight(elem) * height
   }
 
-
   def typeRenderer(t:Type):TypeRenderer = t match {
-    case _:Types.Float => FloatRenderer()
+    case Types.Float => FloatRenderer()
     case array:Types.Array =>
       //Get the nested array sizes as an ordered list
       val sizes = flattenArraySizes(array)
@@ -36,6 +42,7 @@ object Renderer {
       //The ultimate non-array element contained in the nested array
       val bottomElement = Types.arrayBottomElementType(array)
       arrayTypeRenderer(bottomElement, groupedSizes)
+    case function:Types.Function => throw new NotImplementedError(s"Cannot create type renderer for function type $function")
   }
 
   private def arrayTypeRenderer(bottomT:Type, sizes:List[List[Types.ArraySize]]):ArrayTypeRenderer = {
@@ -83,41 +90,67 @@ object Renderer {
     }
   }
 
-  sealed trait PrimitiveRenderer
-  case class Rectangle(x:Int, y:Int, width:Int, height:Int) extends PrimitiveRenderer
-  case class Box(x:Int, y:Int, width:Int, height:Int) extends PrimitiveRenderer
+  sealed trait OperationRenderer extends Renderer
+  case class MapRenderer(inputElement:TypeRenderer, outputElement:TypeRenderer, size:Types.ArraySize) extends OperationRenderer
 
-  def makePrimitives(typeRenderer: TypeRenderer):Iterable[PrimitiveRenderer] = {
+  def operationRenderer(operation:Operation):OperationRenderer = {
+    operation match {
+      case Map(inputType, outputType, size) => MapRenderer(typeRenderer(inputType), typeRenderer(outputType), size)
+    }
+  }
+
+  sealed trait GraphicalPrimitive
+  case class Rectangle(x:Int, y:Int, width:Int, height:Int) extends GraphicalPrimitive
+  case class Box(x:Int, y:Int, width:Int, height:Int) extends GraphicalPrimitive
+
+  def renderType(typeRenderer: TypeRenderer):Iterable[GraphicalPrimitive] = {
     typeRenderer match {
       case FloatRenderer() => Seq(Rectangle(0, 0, 1, 1))
       case LinearArrayRenderer(element, size) =>
         val elemWidth = typeRendererWidth(element)
         //compute inner element primitives
-        val elementPrims = makePrimitives(element)
+        val elementPrims = renderType(element)
         //Repeat each set of primitives up to size times, translating the set by the
         //position
-        val sets = (0 until size).map(pos => elementPrims.map(translate(_, dx = elemWidth*pos, dy = 0)))
+        val sets = (0 until size).map(pos => translateAll(elementPrims, dx = pos*elemWidth, dy = 0))
         //As a final results, flatten the sets and add the container box
         sets.flatten ++ Seq(Box(0, 0, size*elemWidth, 1))
       case GridArrayRenderer(elementType, width, height) =>
         val elemWidth =typeRendererWidth(elementType)
         val elemHeight = typeRendererHeight(elementType)
         //compute inner element primitives
-        val elementPrims = makePrimitives(elementType)
+        val elementPrims = renderType(elementType)
         //Compute the positions where the children will go
         val positions = for(x <- 0 until width;
                             y <- 0 until height) yield (x*elemWidth, y*elemHeight)
         //For each position, replicate the elementPrimitives and translate them to that place
-        val sets = positions.map{case (x,y) => elementPrims.map(translate(_, dx = x, dy = y))}
+        val sets = positions.map{case (x,y) => translateAll(elementPrims, x, y)}
         //Flatten the sets and wrap in container box
         sets.flatten ++ Seq(Box(0, 0, width*elemWidth, height*elemHeight))
     }
   }
 
-  private def translate(primitive:PrimitiveRenderer, dx:Int, dy:Int):PrimitiveRenderer = {
+  def renderOperation(operationRenderer: OperationRenderer):Iterable[GraphicalPrimitive] = {
+    operationRenderer match {
+      case MapRenderer(inType, outType, size) =>
+        //First render the input type
+        val inputArray = LinearArrayRenderer(inType, size)
+        val outputArray = LinearArrayRenderer(outType, size)
+        val inputPrimitives = renderType(inputArray)
+        //Translate the output primitives under the input primitives
+        val outputPrimitives = translateAll(renderType(outputArray), dx = 0, dy = typeRendererHeight(inputArray) + 10)
+        inputPrimitives ++ outputPrimitives
+    }
+  }
+
+  private def translate(primitive:GraphicalPrimitive, dx:Int, dy:Int):GraphicalPrimitive = {
     primitive match {
       case r:Rectangle => r.copy(x = r.x + dx, y = r.y + dy)
       case b:Box => b.copy(x = b.x + dx, y = b.y + dy)
     }
+  }
+
+  private def translateAll(primitives:Iterable[GraphicalPrimitive], dx:Int, dy:Int):Iterable[GraphicalPrimitive] = {
+    primitives.map(translate(_, dx = dx, dy = dy))
   }
 }

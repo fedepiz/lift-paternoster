@@ -7,10 +7,12 @@ object Types {
   sealed trait Type
 
 
-  case class Float() extends Type
+  case object Float extends Type
 
   type ArraySize = Int //Will probably change at some point...
   case class Array(elementT:Type, size:ArraySize) extends Type
+
+  case class Function(input:Types.Type, output:Types.Type) extends Type
 
   def arraySizes(arr:Array):List[ArraySize] = {
     arr.size::(arr.elementT match {

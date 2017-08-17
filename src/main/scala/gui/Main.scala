@@ -8,7 +8,7 @@ import javafx.scene.paint.Color
 import javafx.stage.Stage
 
 import logic.Renderer.{Box, Rectangle}
-import logic.{Renderer, Types}
+import logic.{Operations, Renderer, Types}
 
 /**
   * Created by federico on 16/08/17.
@@ -24,13 +24,13 @@ class MainPane(val width:Int, val height:Int) extends Pane {
   val canvas = new Canvas(width,height)
   this.getChildren.add(canvas)
 
-  def draw(primitives:Iterable[Renderer.PrimitiveRenderer]) = {
+  def draw(primitives:Iterable[Renderer.GraphicalPrimitive]) = {
     val gc = this.canvas.getGraphicsContext2D
     gc.clearRect(0, 0, width, height)
     primitives.foreach(this.drawPrimitive)
   }
 
-  private def drawPrimitive(primitive:Renderer.PrimitiveRenderer) = {
+  private def drawPrimitive(primitive:Renderer.GraphicalPrimitive) = {
     val gc = this.canvas.getGraphicsContext2D
     primitive match {
       case Rectangle(x, y, w, h) =>
@@ -49,19 +49,21 @@ class Main extends Application {
     stage.setScene(new Scene(mainPane, mainPane.width, mainPane.height))
     stage.setTitle("lift-paternoster")
     stage.show()
-
+    /*
     //val initialType = Types.Array(Types.Array(Types.Float(), 5), 5)
     val initialType = Types.Array(Types.Array(Types.Array(Types.Float(),2), 5), 5)
     //val initialType = Types.Array(Types.Array(Types.Array(Types.Array(Types.Array(Types.Float(),2),5),5), 7), 7)
 
     val typeRenderer = Renderer.typeRenderer(initialType)
-    val primitives = Renderer.makePrimitives(typeRenderer)
+    val primitives = Renderer.renderType(typeRenderer)
 
     println(initialType)
     println(typeRenderer)
     println(primitives)
+    */
+    val operation = Operations.Map(Types.Float, Types.Float, 10)
 
-    mainPane.draw(primitives)
+    mainPane.draw(Renderer.renderOperation(Renderer.operationRenderer(operation)))
   }
 }
 
