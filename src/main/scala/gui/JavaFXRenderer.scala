@@ -30,6 +30,14 @@ object JavaFXRenderer {
           y*ctx.unitY + ctx.smallY,
           w*ctx.unitX - 2*ctx.smallX,
           h*ctx.unitY - 2*ctx.smallY)
+      case Line(startX, startY, endX, endY) =>
+        ctx.gc.setStroke(Color.BLACK)
+        ctx.gc.strokeLine(
+          startX*ctx.unitX,
+          startY*ctx.unitY,
+          endX*ctx.unitX,
+          endY*ctx.unitY
+        )
       case Arrow(startX, startY, endX, endY) =>
         ctx.gc.setStroke(Color.BLACK)
         drawArrow(

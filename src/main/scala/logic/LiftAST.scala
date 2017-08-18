@@ -10,6 +10,8 @@ object LiftAST {
 
   case object Float extends Type
 
+  case class Tuple(types:List[Type]) extends Type
+
   type ArraySize = Int //Will probably change at some point...
   case class Array(elementT:Type, size:ArraySize) extends Type
 

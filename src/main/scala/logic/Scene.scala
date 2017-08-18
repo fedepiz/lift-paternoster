@@ -17,6 +17,7 @@ object Scene {
   sealed trait TypeNode extends Node
 
   case class FloatNode() extends TypeNode
+  case class TupleNode(elements:List[TypeNode]) extends TypeNode
   sealed trait ArrayTypeNode extends TypeNode
   case class LinearArrayNode(element:TypeNode, size:Int) extends ArrayTypeNode
   case class GridArrayNode(elementType: TypeNode, width:Int, height:Int) extends ArrayTypeNode
@@ -28,6 +29,7 @@ object Scene {
 
   private def nodeWidth(node: Node):Int = node match {
     case FloatNode() => 1
+    case TupleNode(elements) => elements.map(nodeWidth).sum
     case LinearArrayNode(elem, size) => nodeWidth(elem) * size
     case GridArrayNode(elem, width, _) => nodeWidth(elem) * width
     case MapNode(input, output, size) => Math.max(nodeWidth(input) + size, nodeWidth(output) + size)
@@ -35,6 +37,7 @@ object Scene {
 
   private def nodeHeight(node: Node):Int = node match {
     case FloatNode() => 1
+    case TupleNode(elements) => elements.map(nodeHeight).max
     case LinearArrayNode(elem, size) => nodeHeight(elem)
     case GridArrayNode(elem, _, height) => nodeHeight(elem) * height
     case MapNode(input, output, size) => nodeHeight(input) +  MAP_NODE_CHILDREN_DISTANCE + nodeHeight(output)
@@ -44,6 +47,7 @@ object Scene {
 
   def typeNode(t:Type):TypeNode = t match {
     case Float => FloatNode()
+    case Tuple(elements) => TupleNode(elements.map(typeNode))
     case array:Array =>
       //Get the nested array sizes as an ordered list
       val sizes = flattenArraySizes(array)
@@ -112,6 +116,13 @@ object Scene {
   def drawType(typeNode: TypeNode):Iterable[GraphicalPrimitive] = {
     typeNode match {
       case FloatNode() => Seq(Rectangle(0, 0, 1, 1))
+      case TupleNode(elements) =>
+        //Draw elements
+        val elementPrimitives = elements.flatMap(drawType)
+        //TODO:Replicate and place elements
+        //TODO:Alignment
+        //TODO:Separator lines
+        throw new NotImplementedError("Tuple implementation not finished")
       case LinearArrayNode(element, size) =>
         val elemWidth = nodeWidth(element)
         //compute inner element primitives
