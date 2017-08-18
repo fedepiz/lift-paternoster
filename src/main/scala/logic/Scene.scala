@@ -52,6 +52,7 @@ object Scene {
       //The ultimate non-array element contained in the nested array
       val bottomElement = arrayBottomElementType(array)
       arrayTypeNode(bottomElement, groupedSizes)
+    case _:Function => throw new NotImplementedError("No support for drawing function types yet")
   }
 
   private def arrayTypeNode(bottomT:Type, sizes:List[List[ArraySize]]):ArrayTypeNode = {
@@ -79,7 +80,7 @@ object Scene {
 
   def operationNode(operation:Operation):OperationNode = {
     operation match {
-      case Map(inputType, outputType, size) => MapNode(typeNode(inputType), typeNode(outputType), size)
+      case Map(fType, size) => MapNode(typeNode(fType.inputType), typeNode(fType.outputType), size)
     }
   }
 
@@ -104,7 +105,7 @@ object Scene {
       case dim::other_dims => sizes.take(dim) ::groupSizesByDimensions(other_dims, sizes.drop(dim))
     }
   }
-  
+
   import Graphics._
 
   //The methods here take care of transforming nodes into sets of graphical primitives.

@@ -69,7 +69,7 @@ class Main extends Application {
     stage.show()
 
     import LiftAST._
-    val operation = LiftAST.Map(Float, Array(Float, 2), 10)
+    val operation = LiftAST.Map(Function(Float, Array(Float,2)), 10)
 
     mainPane.draw(Scene.drawOperation(Scene.operationNode(operation)))
   }
